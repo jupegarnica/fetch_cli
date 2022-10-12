@@ -8,7 +8,18 @@ import { assertEquals, assertObjectMatch } from "https://deno.land/std@0.158.0/t
 import { extension } from "https://deno.land/std@0.158.0/media_types/mod.ts?source=cli";
 
 import type { _Request, Meta, _Response, BodyExtracted } from "./types.ts";
-import { assert } from "https://deno.land/std@0.158.0/_util/assert.ts";
+// import { assert } from "https://deno.land/std@0.158.0/_util/assert.ts";
+
+let highlight: (...args: any[]) => string;
+
+try {
+     const hl = await import("npm:cli-highlight");
+    highlight = hl.highlight;
+} catch (error) {
+    console.error(error.message);
+    highlight = (str: string) => str;
+
+}
 
 
 if (import.meta.main) {
@@ -315,36 +326,36 @@ async function imageToText(body: ArrayBuffer): Promise<string> {
 function assertExpectedResponse(response: _Response, expectedResponse: _Response) {
     // try {
 
-        // console.log('response', {
-        //     bodyExtracted: response.bodyExtracted,
-        //     // headers: response.headers
+    // console.log('response', {
+    //     bodyExtracted: response.bodyExtracted,
+    //     // headers: response.headers
 
-        // });
-        // console.log('expected', {
-        //     bodyExtracted: expectedResponse.bodyExtracted,
-        //     // headers: expectedResponse.headers
-        // });
+    // });
+    // console.log('expected', {
+    //     bodyExtracted: expectedResponse.bodyExtracted,
+    //     // headers: expectedResponse.headers
+    // });
 
 
-        if (expectedResponse.status) assertEquals(expectedResponse.status, response.status);
-        if (expectedResponse.statusText) assertEquals(expectedResponse.statusText, response.statusText);
-        if (expectedResponse.bodyExtracted) {
-            if (typeof expectedResponse.bodyExtracted === 'object' && typeof response.bodyExtracted === 'object') {
-                assertObjectMatch(
-                    response.bodyExtracted as Record<string, unknown>,
-                    expectedResponse.bodyExtracted as Record<string, unknown>,
-                );
-            } else {
-                assertEquals(response.bodyExtracted, expectedResponse.bodyExtracted);
-            }
-
+    if (expectedResponse.status) assertEquals(expectedResponse.status, response.status);
+    if (expectedResponse.statusText) assertEquals(expectedResponse.statusText, response.statusText);
+    if (expectedResponse.bodyExtracted) {
+        if (typeof expectedResponse.bodyExtracted === 'object' && typeof response.bodyExtracted === 'object') {
+            assertObjectMatch(
+                response.bodyExtracted as Record<string, unknown>,
+                expectedResponse.bodyExtracted as Record<string, unknown>,
+            );
+        } else {
+            assertEquals(response.bodyExtracted, expectedResponse.bodyExtracted);
         }
-        if (expectedResponse.headers) {
 
-            for (const [key, value] of expectedResponse.headers.entries()) {
-                assertEquals(response.headers.get(key), value);
-            }
+    }
+    if (expectedResponse.headers) {
+
+        for (const [key, value] of expectedResponse.headers.entries()) {
+            assertEquals(response.headers.get(key), value);
         }
+    }
     // } catch (error) {
     //     throw new Error("Expected response does not match actual response:\n" + error.message);
 
