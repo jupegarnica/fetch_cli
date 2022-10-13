@@ -1,6 +1,6 @@
 import { type Args, parse } from "https://deno.land/std@0.158.0/flags/mod.ts";
 import * as colors from "https://deno.land/std@0.158.0/fmt/colors.ts";
-// @ts-ignore: it has a highlight named export
+import { readAll } from "https://deno.land/std@0.159.0/streams/mod.ts";// @ts-ignore: it has a highlight named export
 import { highlight } from "npm:cli-highlight";
 import { getImageStrings } from "https://deno.land/x/terminal_images@3.0.0/mod.ts";
 import { mimesToBlob, mimesToArrayBuffer, mimesToJSON, mimesToText, mimesToFormData } from "./mimes.ts";
@@ -10,10 +10,11 @@ import { extension } from "https://deno.land/std@0.158.0/media_types/mod.ts?sour
 import type { _Request, Meta, _Response, BodyExtracted } from "./types.ts";
 // import { assert } from "https://deno.land/std@0.158.0/_util/assert.ts";
 
-let highlight: (...args: any[]) => string;
+// deno-lint-ignore no-explicit-any
+let highlight: (args: string, opt?: any) => string;
 
 try {
-     const hl = await import("npm:cli-highlight");
+    const hl = await import("npm:cli-highlight");
     highlight = hl.highlight;
 } catch (error) {
     console.error(error.message);
@@ -26,7 +27,7 @@ if (import.meta.main) {
     const args: Args = parse(Deno.args, {
         alias: {
             headers: "h",
-            method: ["X", 'm'],
+            method: ["X", 'x', 'm', 'M'],
             body: "b",
             hideBody: "hide-body",
             hideHeaders: "hide-headers",
@@ -61,6 +62,29 @@ if (import.meta.main) {
         abortController.abort();
         Deno.exit(130);
     });
+    args.headers = args.headers ? Array.isArray(args.headers) ? args.headers : [args.headers] : [];
+
+
+
+    // if stdin is a TTY, read the body from the stdin
+    // console.log(Deno.stdin.readable.pipeThrough);
+
+    if (args.stdin) {
+        const body = await readAll(Deno.stdin);
+        args.body = new TextDecoder().decode(body);
+        try {
+            JSON.parse(args.body);
+            args.headers.push("Content-Type: application/json");
+        } catch {
+            args.headers.push("Content-Type: text/plain");
+        }
+    }
+    console.log(args.body);
+
+
+
+
+
 
     await runFetch(args, abortController.signal);
 }
@@ -79,8 +103,7 @@ export function runFetch(args: Args, signal: AbortSignal | null = null): Promise
     }
 
     const headers = new Headers();
-    const headersInput = args.headers ? Array.isArray(args.headers) ? args.headers : [args.headers] : [];
-    for (const txt of headersInput) {
+    for (const txt of args.headers) {
         const [key, value] = txt.replace(":", "<<::>>").split("<<::>>");
         headers.set(key, value);
     }

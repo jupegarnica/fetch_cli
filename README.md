@@ -5,7 +5,7 @@ Use fetch web API from the command line.
 ## Installation
 
 ```bash
-deno install --allow-net  -n fetch https://deno.land/x/fetch_cli/fetch.ts
+deno install --allow-net  -fn fetch https://deno.land/x/fetch_cli/fetch.ts
 ```
 
 ## Usage
