@@ -1,7 +1,6 @@
 import { type Args, parse } from "https://deno.land/std@0.158.0/flags/mod.ts";
 import * as colors from "https://deno.land/std@0.158.0/fmt/colors.ts";
-import { readAll } from "https://deno.land/std@0.159.0/streams/mod.ts";// @ts-ignore: it has a highlight named export
-import { highlight } from "npm:cli-highlight";
+import { readAll } from "https://deno.land/std@0.159.0/streams/mod.ts";
 import { getImageStrings } from "https://deno.land/x/terminal_images@3.0.0/mod.ts";
 import { mimesToBlob, mimesToArrayBuffer, mimesToJSON, mimesToText, mimesToFormData } from "./mimes.ts";
 import { assertEquals, assertObjectMatch } from "https://deno.land/std@0.158.0/testing/asserts.ts";
@@ -10,6 +9,8 @@ import { extension } from "https://deno.land/std@0.158.0/media_types/mod.ts?sour
 import type { _Request, Meta, _Response, BodyExtracted } from "./types.ts";
 // import { assert } from "https://deno.land/std@0.158.0/_util/assert.ts";
 
+// @ts-ignore: it has a highlight named export
+// import { highlight } from "npm:cli-highlight";
 // deno-lint-ignore no-explicit-any
 let highlight: (args: string, opt?: any) => string;
 
@@ -17,7 +18,7 @@ try {
     const hl = await import("npm:cli-highlight");
     highlight = hl.highlight;
 } catch (error) {
-    console.error(error.message);
+    // console.error(error.message);
     highlight = (str: string) => str;
 
 }
@@ -91,6 +92,7 @@ Other options:
         Deno.exit(130);
     });
     args.headers = args.headers ? Array.isArray(args.headers) ? args.headers : [args.headers] : [];
+    console.log({headers: args.headers});
 
 
 
@@ -118,7 +120,7 @@ Other options:
 export function runFetch(args: Args, signal: AbortSignal | null = null): Promise<_Response> {
 
     let url = '';
-
+    args.headers = args.headers ? Array.isArray(args.headers) ? args.headers : [args.headers] : [];
     if (args._.length === 0) {
         throw new Error("Error: URL is required");
     } else {
@@ -154,7 +156,7 @@ export function runFetch(args: Args, signal: AbortSignal | null = null): Promise
 
     const meta: Meta = { hideBody, hideHeaders, hideRequest, hideResponse }
 
-    return fetchRequest(request, meta, undefined);
+    return fetchRequest(request, meta);
 
 
 
@@ -166,7 +168,6 @@ export function runFetch(args: Args, signal: AbortSignal | null = null): Promise
 export async function fetchRequest(
     request: _Request,
     meta: Meta = {},
-    expectedResponse?: _Response
 ): Promise<_Response> {
     try {
         const {
@@ -195,10 +196,6 @@ export async function fetchRequest(
 
         if (!response.bodyUsed) {
             await response.body?.cancel();
-        }
-        if (typeof expectedResponse === 'object') {
-            await extractBody(expectedResponse);
-            assertExpectedResponse(response, expectedResponse);
         }
         return response;
     } catch (error) {
@@ -255,10 +252,6 @@ function headersToText(headers: Headers): string {
 
 async function printBody(re: _Response | _Request): Promise<void> {
     const { body, contentType } = await extractBody(re);
-
-    // console.log('re.constructor.name', re.constructor.name);
-    // console.log('re.bodyExtracted', re.bodyExtracted);
-    // console.log('re. bodyRaw', re.bodyRaw);
     console.info(await bodyToText({ body, contentType }), '\n');
 
 }
@@ -369,45 +362,4 @@ async function imageToText(body: ArrayBuffer): Promise<string> {
     const rawFile = new Uint8Array(body);
     const options = { rawFile }
     return [...await getImageStrings(options)].join('');
-}
-
-
-function assertExpectedResponse(response: _Response, expectedResponse: _Response) {
-    // try {
-
-    // console.log('response', {
-    //     bodyExtracted: response.bodyExtracted,
-    //     // headers: response.headers
-
-    // });
-    // console.log('expected', {
-    //     bodyExtracted: expectedResponse.bodyExtracted,
-    //     // headers: expectedResponse.headers
-    // });
-
-
-    if (expectedResponse.status) assertEquals(expectedResponse.status, response.status);
-    if (expectedResponse.statusText) assertEquals(expectedResponse.statusText, response.statusText);
-    if (expectedResponse.bodyExtracted) {
-        if (typeof expectedResponse.bodyExtracted === 'object' && typeof response.bodyExtracted === 'object') {
-            assertObjectMatch(
-                response.bodyExtracted as Record<string, unknown>,
-                expectedResponse.bodyExtracted as Record<string, unknown>,
-            );
-        } else {
-            assertEquals(response.bodyExtracted, expectedResponse.bodyExtracted);
-        }
-
-    }
-    if (expectedResponse.headers) {
-
-        for (const [key, value] of expectedResponse.headers.entries()) {
-            assertEquals(response.headers.get(key), value);
-        }
-    }
-    // } catch (error) {
-    //     throw new Error("Expected response does not match actual response:\n" + error.message);
-
-    // }
-
 }
