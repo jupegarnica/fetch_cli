@@ -17,19 +17,3 @@ export interface _Response extends Response {
 }
 
 export type BodyExtracted = { body: unknown; contentType: string }
-
-
-export type Block = {
-    text?: string;
-    request?: _Request;
-    response?: _Response;
-    meta?: Meta;
-    startLine?: number;
-    endLine?: number;
-};
-
-
-export type File = {
-    path: string;
-    blocks: Block[];
-}
