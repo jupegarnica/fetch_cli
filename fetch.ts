@@ -24,7 +24,7 @@ try {
 
 
 if (import.meta.main) {
-    const args: Args = parse(Deno.args, {
+    const config = {
         alias: {
             headers: "h",
             method: ["X", 'x', 'm', 'M'],
@@ -55,7 +55,35 @@ if (import.meta.main) {
 
 
         }
-    });
+    };
+    const args: Args = parse(Deno.args, config);
+    if (args.help) {
+        console.info(`Usage: fetch [options] <url>
+
+Request initialization options:
+-h, --headers           Request headers
+-X, -m, --method        HTTP method
+-b, --body              Request body
+--keep-alive            Keep alive
+--cache                 Cache mode
+--credentials           Credentials mode
+--redirect              Redirect mode
+--referrer              Referrer
+--referrer-policy       Referrer policy
+--integrity             Subresource integrity
+--mode                  Mode
+
+Display options:
+--hide-request          Hide all request
+--hide-response         Hide response metadata
+--hide-body             Hide all body
+--hide-headers          Hide all headers
+
+Other options:
+--help                  Show this help
+    `);
+        Deno.exit(0);
+    }
 
     const abortController = new AbortController();
     Deno.addSignalListener("SIGINT", () => {
@@ -72,19 +100,17 @@ if (import.meta.main) {
     if (args.stdin) {
         const body = await readAll(Deno.stdin);
         args.body = new TextDecoder().decode(body);
-        try {
-            JSON.parse(args.body);
+    }
+    try {
+        JSON.parse(args.body);
+        if (!args.headers.some((header: string) => header.toLowerCase().includes('content-type'))) {
             args.headers.push("Content-Type: application/json");
-        } catch {
+        }
+    } catch {
+        if (!args.headers.some((header: string) => header.toLowerCase().includes('content-type'))) {
             args.headers.push("Content-Type: text/plain");
         }
     }
-    console.log(args.body);
-
-
-
-
-
 
     await runFetch(args, abortController.signal);
 }
